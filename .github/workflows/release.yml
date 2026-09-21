@@ -3,6 +3,10 @@ name: Publish desktop release
 on:
   workflow_dispatch:
     inputs:
+      run_id:
+        description: Successful Desktop builds run ID containing the release packages
+        required: true
+        type: string
       tag:
         description: Version tag; it must match package.json (for example v0.1.0)
         required: true
@@ -20,6 +24,7 @@ on:
         type: boolean
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -29,12 +34,61 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: ${{ inputs.run_id }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Validate release tag
+      - name: Validate source workflow run
+        id: source
         shell: bash
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "Invalid workflow run ID: $SOURCE_RUN_ID"
+            exit 1
+          fi
+
+          RUN_JSON="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID")"
+          WORKFLOW_PATH="$(jq -r '.path' <<< "$RUN_JSON")"
+          EVENT="$(jq -r '.event' <<< "$RUN_JSON")"
+          HEAD_BRANCH="$(jq -r '.head_branch' <<< "$RUN_JSON")"
+          HEAD_SHA="$(jq -r '.head_sha' <<< "$RUN_JSON")"
+          STATUS="$(jq -r '.status' <<< "$RUN_JSON")"
+          CONCLUSION="$(jq -r '.conclusion' <<< "$RUN_JSON")"
+
+          if [[ "$WORKFLOW_PATH" != ".github/workflows/build.yml" ]]; then
+            echo "Run $SOURCE_RUN_ID belongs to $WORKFLOW_PATH, not Desktop builds"
+            exit 1
+          fi
+          if [[ "$EVENT" != "push" && "$EVENT" != "workflow_dispatch" ]]; then
+            echo "Run $SOURCE_RUN_ID was triggered by $EVENT; only main push or manual builds are publishable"
+            exit 1
+          fi
+          if [[ "$HEAD_BRANCH" != "main" ]]; then
+            echo "Run $SOURCE_RUN_ID came from branch $HEAD_BRANCH, not main"
+            exit 1
+          fi
+          if [[ "$STATUS" != "completed" || "$CONCLUSION" != "success" ]]; then
+            echo "Run $SOURCE_RUN_ID is not a completed successful build"
+            exit 1
+          fi
+
+          ARTIFACTS="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/artifacts" --paginate --jq '.artifacts[] | select(.expired == false) | .name')"
+          for PLATFORM in Windows macOS Linux; do
+            if ! grep -Fxq "release-$PLATFORM-$HEAD_SHA" <<< "$ARTIFACTS"; then
+              echo "Run $SOURCE_RUN_ID has no unexpired release artifact for $PLATFORM"
+              exit 1
+            fi
+          done
+
+          echo "sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+      - name: Validate release tag and source version
+        shell: bash
         run: |
           if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
             echo "Invalid release tag: $RELEASE_TAG"
@@ -46,55 +100,13 @@ jobs:
             exit 1
           fi
 
-  build:
-    needs: validate
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.19.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
-      - run: pnpm build
-      - name: Desktop integration test
-        if: runner.os != 'Linux'
-        run: pnpm test:e2e
-      - name: Desktop integration test (Linux)
-        if: runner.os == 'Linux'
-        run: xvfb-run --auto-servernum pnpm test:e2e
-      - name: Build distributable packages
-        run: pnpm exec electron-builder --publish never
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - name: Upload release packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-${{ runner.os }}
-          path: |
-            release/*.exe
-            release/*.zip
-            release/*.dmg
-            release/*.AppImage
-            release/*.deb
-            release/*.yml
-            release/*.blockmap
-          if-no-files-found: error
-          retention-days: 7
-
   publish:
-    needs: build
+    needs: validate
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: ${{ inputs.run_id }}
+      SOURCE_SHA: ${{ needs.validate.outputs.source_sha }}
       RELEASE_TAG: ${{ inputs.tag }}
       RELEASE_DRAFT: ${{ inputs.draft }}
       RELEASE_PRERELEASE: ${{ inputs.prerelease }}
@@ -104,6 +116,22 @@ jobs:
           pattern: release-*
           path: release-assets
           merge-multiple: true
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.run_id }}
+      - name: Validate downloaded packages
+        shell: bash
+        run: |
+          shopt -s nullglob
+          WINDOWS=(release-assets/*.exe)
+          MACOS=(release-assets/*.dmg)
+          APPIMAGES=(release-assets/*.AppImage)
+          DEBIAN=(release-assets/*.deb)
+          if (( ${#WINDOWS[@]} == 0 || ${#MACOS[@]} == 0 || ${#APPIMAGES[@]} == 0 || ${#DEBIAN[@]} == 0 )); then
+            echo "The selected run does not contain every required platform package"
+            find release-assets -type f -print
+            exit 1
+          fi
       - name: Create SHA-256 checksums
         shell: bash
         run: |
@@ -120,8 +148,8 @@ jobs:
             exit 1
           fi
 
-          SIGNING_NOTE="Windows packages in this release are currently unsigned. The project is applying for free code signing provided by SignPath.io, certificate by SignPath Foundation. See https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/CODE_SIGNING_POLICY.md"
-          ARGS=("$RELEASE_TAG" "${FILES[@]}" --target "$GITHUB_SHA" --generate-notes --notes "$SIGNING_NOTE" --title "Thus.Live Editor $RELEASE_TAG")
+          SIGNING_NOTE="These packages were reused from successful Desktop builds run $SOURCE_RUN_ID at commit $SOURCE_SHA; this publishing workflow did not rebuild them. Windows packages are currently unsigned. The project is applying for free code signing provided by SignPath.io, certificate by SignPath Foundation. See https://github.com/$GITHUB_REPOSITORY/blob/$SOURCE_SHA/CODE_SIGNING_POLICY.md"
+          ARGS=("$RELEASE_TAG" "${FILES[@]}" --target "$SOURCE_SHA" --generate-notes --notes "$SIGNING_NOTE" --title "Thus.Live Editor $RELEASE_TAG")
           if [[ "$RELEASE_DRAFT" == "true" ]]; then
             ARGS+=(--draft)
           fi
