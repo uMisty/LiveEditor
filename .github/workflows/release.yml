@@ -16,11 +16,6 @@ on:
         description: Optional Markdown override; empty uses docs/releases/<tag>.md
         required: false
         type: string
-      generate_notes:
-        description: Append GitHub's automatically generated change list
-        required: true
-        default: true
-        type: boolean
       draft:
         description: Create the GitHub Release as a draft
         required: true
@@ -118,11 +113,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      SOURCE_RUN_ID: ${{ inputs.run_id }}
       SOURCE_SHA: ${{ needs.validate.outputs.source_sha }}
       RELEASE_TAG: ${{ inputs.tag }}
       RELEASE_NOTES: ${{ inputs.release_notes }}
-      GENERATE_NOTES: ${{ inputs.generate_notes }}
       RELEASE_DRAFT: ${{ inputs.draft }}
       RELEASE_PRERELEASE: ${{ inputs.prerelease }}
     steps:
@@ -186,18 +179,13 @@ jobs:
             exit 1
           fi
 
-          SIGNING_NOTE="These packages were reused from successful Desktop builds run $SOURCE_RUN_ID at commit $SOURCE_SHA; this publishing workflow did not rebuild them. Windows packages are currently unsigned. The project is applying for free code signing provided by SignPath.io, certificate by SignPath Foundation. See https://github.com/$GITHUB_REPOSITORY/blob/$SOURCE_SHA/CODE_SIGNING_POLICY.md"
-          NOTES="$SIGNING_NOTE"
           if [[ -n "$RELEASE_NOTES" ]]; then
-            NOTES="$RELEASE_NOTES"$'\n\n'"$SIGNING_NOTE"
-          elif [[ -f "docs/releases/$RELEASE_TAG.md" ]]; then
-            NOTES="$(cat "docs/releases/$RELEASE_TAG.md")"$'\n\n'"$SIGNING_NOTE"
+            NOTES="$RELEASE_NOTES"
+          else
+            NOTES="$(cat "docs/releases/$RELEASE_TAG.md")"
           fi
 
           ARGS=("$RELEASE_TAG" "${FILES[@]}" --verify-tag --notes "$NOTES" --title "Thus.Live Editor $RELEASE_TAG")
-          if [[ "$GENERATE_NOTES" == "true" ]]; then
-            ARGS+=(--generate-notes)
-          fi
           if [[ "$RELEASE_DRAFT" == "true" ]]; then
             ARGS+=(--draft)
           fi

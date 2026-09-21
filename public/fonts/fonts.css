@@ -1,2 +1,2 @@
-@font-face{font-family:'Noto Sans SC';src:url('./NotoSansSC.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap}
-@font-face{font-family:'JetBrains Mono';src:url('./JetBrainsMono.ttf') format('truetype');font-weight:100 800;font-style:normal;font-display:swap}
+@font-face{font-family:'Noto Sans SC';src:url('./NotoSansSC.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url('./JetBrainsMono.woff2') format('woff2');font-weight:100 800;font-style:normal;font-display:swap}

@@ -94,7 +94,10 @@ async function createWindow(){
   const dev=process.env.VITE_DEV_SERVER_URL
   await win.loadURL(dev||'thus://app/index.html')
 }
-app.whenReady().then(async()=>{
+const primaryInstance=app.requestSingleInstanceLock()
+if(!primaryInstance)app.quit()
+else app.on('second-instance',()=>{if(win&&!win.isDestroyed()){if(win.isMinimized())win.restore();win.show();win.focus()}})
+if(primaryInstance)app.whenReady().then(async()=>{
 if(process.platform==='win32')app.setAppUserModelId('live.thus.editor')
 session.defaultSession.setPermissionRequestHandler((_w,_p,cb)=>cb(false))
 protocol.handle('thus',async req=>{const u=new URL(req.url);const file=path.resolve(here,'../dist','.'+decodeURIComponent(u.pathname));if(u.host!=='app'||!inside(path.resolve(here,'../dist'),file))return new Response('Forbidden',{status:403});const response=await net.fetch(pathToFileURL(file).href);response.headers.set('Access-Control-Allow-Origin','*');return response})

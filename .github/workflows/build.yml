@@ -26,6 +26,24 @@ jobs:
       - name: Desktop integration test (Linux)
         if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum pnpm test:e2e
+      - name: Build distributable packages
+        run: pnpm exec electron-builder --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Verify trimmed package contents
+        run: node scripts/verify-package.mjs release
+      - name: Verify packaged Windows editor and process lifecycle
+        if: runner.os == 'Windows'
+        run: pnpm exec playwright test tests/e2e/editor.spec.ts tests/e2e/process-lifecycle.spec.ts tests/e2e/packaged-assets.spec.ts
+        env:
+          THUS_PACKAGED_EXECUTABLE: ${{ github.workspace }}/release/win-unpacked/Thus.Live Editor.exe
+      - name: Verify Windows single-file portable
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:THUS_PORTABLE_EXECUTABLE = (Get-ChildItem release -Filter '*-portable.exe' | Select-Object -First 1).FullName
+          if (!$env:THUS_PORTABLE_EXECUTABLE) { throw 'Portable executable not found' }
+          pnpm exec playwright test tests/e2e/portable.spec.ts
       - name: Upload Playwright failure details
         if: failure()
         uses: actions/upload-artifact@v4
@@ -34,10 +52,6 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
           retention-days: 7
-      - name: Build distributable packages
-        run: pnpm exec electron-builder --publish never
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: Upload reusable release packages
         uses: actions/upload-artifact@v4
         with:
@@ -48,7 +62,7 @@ jobs:
             release/*.dmg
             release/*.AppImage
             release/*.deb
-            release/*.yml
+            release/latest*.yml
             release/*.blockmap
           if-no-files-found: error
           retention-days: 30

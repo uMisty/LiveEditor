@@ -24,17 +24,11 @@
     "package": "pnpm build && electron-builder --dir",
     "dist": "pnpm build && electron-builder",
     "icons": "electron scripts/generate-icons.mjs",
-    "docs:screenshots": "node scripts/capture-docs.mjs"
+    "docs:screenshots": "node scripts/capture-docs.mjs",
+    "dist:installer": "pnpm build && electron-builder --win nsis"
   },
   "dependencies": {
-    "@codemirror/language": "^6.12.4",
-    "@lezer/highlight": "^1.2.3",
-    "@codemirror/lang-markdown": "^6.3.4",
-    "@codemirror/state": "^6.5.2",
-    "@codemirror/view": "^6.38.1",
-    "codemirror": "^6.0.2",
     "chokidar": "^4.0.3",
-    "dompurify": "^3.2.7",
     "markdown-it-footnote": "^4.0.0",
     "markdown-it-task-lists": "^2.1.1",
     "markdown-it-deflist": "^3.0.0",
@@ -43,7 +37,6 @@
     "markdown-it-sub": "^2.0.0",
     "markdown-it-sup": "^2.0.0",
     "markdown-it-mathjax3": "^4.3.2",
-    "mermaid": "^11.12.0",
     "vitepress": "1.6.4",
     "vue": "^3.5.42",
     "yaml": "^2.8.1"
@@ -58,7 +51,15 @@
     "tsx": "^4.20.5",
     "typescript": "~5.9.3",
     "vite": "^5.4.20",
-    "vue-tsc": "^3.1.0"
+    "vue-tsc": "^3.1.0",
+    "@codemirror/language": "^6.12.4",
+    "@lezer/highlight": "^1.2.3",
+    "@codemirror/lang-markdown": "^6.3.4",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.1",
+    "codemirror": "^6.0.2",
+    "dompurify": "^3.2.7",
+    "mermaid": "^11.12.0"
   },
   "build": {
     "appId": "live.thus.editor",
@@ -74,12 +75,15 @@
       "LICENSE",
       "README.md",
       "README.en.md",
-      "THIRD_PARTY_NOTICES.md"
+      "THIRD_PARTY_NOTICES.md",
+      "!**/*.map",
+      "!node_modules/**/{test,tests,__tests__,example,examples,demo,demos}/**",
+      "!node_modules/mathjax-full/{es5,ts,components}/**",
+      "!node_modules/@shikijs/themes/dist/!(github-light|github-dark|index).mjs"
     ],
     "win": {
       "target": [
-        "nsis",
-        "zip"
+        "portable"
       ],
       "icon": "public/app-icon.ico"
     },
@@ -104,6 +108,15 @@
       "installerIcon": "public/app-icon.ico",
       "uninstallerIcon": "public/app-icon.ico",
       "installerHeaderIcon": "public/app-icon.ico"
+    },
+    "electronLanguages": [
+      "en-US",
+      "zh-CN",
+      "zh-TW"
+    ],
+    "portable": {
+      "artifactName": "${productName}-${version}-${arch}-portable.${ext}",
+      "unpackDirName": false
     }
   }
 }

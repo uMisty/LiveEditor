@@ -123,9 +123,9 @@ Thus.Live/
 
 ## 下载与发布
 
-正式安装包从 [GitHub Releases](https://github.com/uMisty/LiveEditor/releases) 下载。Windows 提供 NSIS 安装包和 ZIP，macOS 提供 DMG 和 ZIP，Linux 提供 AppImage 和 DEB。手动运行 `Desktop builds` 工作流会在三种系统上测试并生成可复用安装包；`Publish desktop release` 工作流仅在手动触发时选择某次成功构建、校验来源与版本并发布，不会重复编译。每个 Release 都附带 `SHA256SUMS.txt` 校验清单。
+正式安装包从 [GitHub Releases](https://github.com/uMisty/LiveEditor/releases) 下载。Windows 默认提供单文件便携 EXE（NSIS 安装包可按需构建），macOS 提供 DMG 和 ZIP，Linux 提供 AppImage 和 DEB。手动运行 `Desktop builds` 工作流会在三种系统上测试并生成可复用安装包；`Publish desktop release` 工作流仅在手动触发时选择某次成功构建、校验来源与版本并发布，不会重复编译。每个 Release 都附带 `SHA256SUMS.txt` 校验清单。
 
-发布时先在 [`docs/releases`](docs/releases/README.md) 中新增对应版本说明，再在 Actions 中手动运行 `Desktop builds`。构建成功后从地址栏复制运行编号，手动运行 `Publish desktop release`，填写该 `run_id` 和与 `package.json` 一致的版本标签。发布工作流默认读取 `docs/releases/vX.Y.Z.md`；临时填写 `release_notes` 时会覆盖归档内容。`generate_notes` 控制是否在手写说明之后附加 GitHub 自动生成的变更记录。普通推送不会启动桌面构建，也不会创建 GitHub Release。
+发布时先在 [`docs/releases`](docs/releases/README.md) 中新增对应版本说明，再在 Actions 中手动运行 `Desktop builds`。构建成功后从地址栏复制运行编号，手动运行 `Publish desktop release`，填写该 `run_id` 和与 `package.json` 一致的版本标签。发布工作流默认将 `docs/releases/vX.Y.Z.md` 原样用作 Release 正文；临时填写 `release_notes` 时会覆盖归档内容，不会额外附加构建信息、签名说明或自动生成的变更列表。普通推送不会启动桌面构建，也不会创建 GitHub Release。
 
 项目正在申请 SignPath Foundation 的开源代码签名服务。申请获批并完成集成后，Windows 发布文件将使用“Free code signing provided by SignPath.io, certificate by SignPath Foundation”。在此之前，Release 说明会明确标记 Windows 文件尚未签名，详见[代码签名政策](CODE_SIGNING_POLICY.md)。
 
@@ -147,11 +147,12 @@ pnpm dev
 | `pnpm test:e2e` | 真实 Electron 窗口集成测试，先执行构建 |
 | `pnpm start` | 运行已构建的应用 |
 | `pnpm package` | 生成可运行的应用目录 |
-| `pnpm dist` | 生成当前系统的安装包与压缩包 |
+| `pnpm dist` | 生成当前系统的分发产物，Windows 为单文件便携 EXE |
+| `pnpm dist:installer` | 按需生成 Windows NSIS 安装包 |
 | `pnpm icons` | 从 SVG 母版重新生成各平台图标 |
 | `pnpm docs:screenshots` | 用临时示例项目更新本文截图，先执行构建 |
 
-构建产物位于 `release/`。运行 Windows 解压版时需保留完整目录。三平台 CI 会执行核心测试、生产构建和 Electron 集成测试；平台签名、公证以及更广泛的 Linux 发行版兼容性仍需在正式发布阶段核验。详细流程见[开发与构建指南](docs/README.md)。
+构建产物位于 `release/`。Windows 只需分发 `*-portable.exe`，配置继续保存在 AppData；启动时运行组件解压到临时目录，正常退出后清理。`win-unpacked` 是构建中间目录，其内部文件必须配套使用。三平台 CI 会执行核心测试、生产构建和 Electron 集成测试；平台签名、公证以及更广泛的 Linux 发行版兼容性仍需在正式发布阶段核验。详细流程见[开发与构建指南](docs/README.md)。
 
 ## 预览与兼容范围
 

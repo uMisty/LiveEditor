@@ -123,9 +123,9 @@ Date and tag filters are selected in a dialog and applied with **View articles**
 
 ## Downloads and releases
 
-Official packages are available from [GitHub Releases](https://github.com/uMisty/LiveEditor/releases). Windows builds include an NSIS installer and ZIP archive, macOS builds include DMG and ZIP packages, and Linux builds include AppImage and DEB packages. Running the `Desktop builds` workflow manually tests and creates reusable packages on all three operating systems. The `Publish desktop release` workflow selects a successful build, verifies its source and version, and publishes it without rebuilding. Every Release includes a `SHA256SUMS.txt` checksum file.
+Official packages are available from [GitHub Releases](https://github.com/uMisty/LiveEditor/releases). Windows builds default to a single portable EXE (an NSIS installer can be built separately), macOS builds include DMG and ZIP packages, and Linux builds include AppImage and DEB packages. Running the `Desktop builds` workflow manually tests and creates reusable packages on all three operating systems. The `Publish desktop release` workflow selects a successful build, verifies its source and version, and publishes it without rebuilding. Every Release includes a `SHA256SUMS.txt` checksum file.
 
-Before publishing, add the matching release notes under [`docs/releases`](docs/releases/README.md), then run `Desktop builds` from GitHub Actions. After it succeeds, copy the run ID from the address bar and run `Publish desktop release` with that `run_id` and a tag matching `package.json`. The workflow reads `docs/releases/vX.Y.Z.md` by default; a manually entered `release_notes` value overrides the archive. `generate_notes` controls whether GitHub's generated change list is appended. Ordinary pushes do not start desktop builds or create a GitHub Release.
+Before publishing, add the matching release notes under [`docs/releases`](docs/releases/README.md), then run `Desktop builds` from GitHub Actions. After it succeeds, copy the run ID from the address bar and run `Publish desktop release` with that `run_id` and a tag matching `package.json`. By default, the workflow uses `docs/releases/vX.Y.Z.md` verbatim as the Release body. A manually entered `release_notes` value overrides the archive. It does not append build metadata, signing boilerplate, or an automatically generated change list. Ordinary pushes do not start desktop builds or create a GitHub Release.
 
 The project is applying to the SignPath Foundation open-source code-signing program. After approval and integration, Windows packages will use “Free code signing provided by SignPath.io, certificate by SignPath Foundation.” Until then, each Release identifies Windows files as unsigned. See the [code-signing policy](CODE_SIGNING_POLICY.md).
 
@@ -147,11 +147,12 @@ Electron may need to be downloaded on the first run. The development server star
 | `pnpm test:e2e` | Run integration tests in a real Electron window after building |
 | `pnpm start` | Run the previously built application |
 | `pnpm package` | Create an unpacked application directory |
-| `pnpm dist` | Create the current platform's installer and archive packages |
+| `pnpm dist` | Create platform packages; Windows defaults to a single portable EXE |
+| `pnpm dist:installer` | Build an optional Windows NSIS installer |
 | `pnpm icons` | Regenerate platform icons from the SVG source |
 | `pnpm docs:screenshots` | Refresh README screenshots using a temporary sample project after building |
 
-Build output is written to `release/`. Keep the complete directory when using the unpacked Windows build. Three-platform CI runs core tests, the production build, and Electron integration tests. Platform signing, notarization, and broader Linux distribution compatibility still require release-stage verification. See the [development and build guide](docs/README.md) for details.
+Build output is written to `release/`. Distribute only `*-portable.exe` on Windows. Settings remain in AppData; runtime files extract to a temporary directory and are removed on normal exit. `win-unpacked` is an intermediate build directory whose files must stay together. Three-platform CI runs core tests, the production build, and Electron integration tests. Platform signing, notarization, and broader Linux distribution compatibility still require release-stage verification. See the [development and build guide](docs/README.md) for details.
 
 ## Preview behavior and compatibility
 

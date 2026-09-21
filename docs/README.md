@@ -29,7 +29,7 @@ flowchart TB
 | `tests/` | 单元测试和 Electron 集成测试 |
 | `docs/`、`design/` | 文档截图、设计说明与核对记录 |
 | `dist/`、`dist-electron/` | 构建生成目录 |
-| `release/` | 应用目录、安装包和便携压缩包 |
+| `release/` | 应用目录、安装包和单文件便携版 |
 
 ## 开发环境
 
@@ -58,7 +58,7 @@ Windows 打包示例：
 
 ```sh
 pnpm build
-pnpm exec electron-builder --win nsis zip --publish never
+pnpm exec electron-builder --win portable --publish never
 ```
 
 默认输出示例：
@@ -66,15 +66,20 @@ pnpm exec electron-builder --win nsis zip --publish never
 ```text
 release/
 ├── win-unpacked/Thus.Live Editor.exe
-├── Thus.Live Editor Setup 0.1.0.exe
-└── Thus.Live Editor-0.1.0-win.zip
+└── Thus.Live Editor-0.1.0-x64-portable.exe
 ```
 
-`win-unpacked` 和便携版需保留全部文件，不能单独搬走 EXE。`pnpm package` 生成当前平台的可运行目录；`pnpm dist` 使用当前平台的安装包目标。已有安装包不会随源码变更自动更新，需要重新打包。
+Windows 默认分发 `*-portable.exe` 一个文件，无需安装。启动时运行组件会解压到临时目录，正常退出后清理；配置和恢复副本继续保存在 `%APPDATA%/thus-live-editor`，沿用现有设置。`win-unpacked` 是构建和测试的中间目录，内部 EXE 不能单独搬走，也无需随便携 EXE 分发。`pnpm package` 生成可运行目录；`pnpm dist` 生成当前平台的默认分发产物；`pnpm dist:installer` 按需生成 Windows NSIS 安装包。已有产物不会随源码变更自动更新，需要重新打包。
+
+打包只保留 Chromium 简中、繁中、英语资源；编辑其他语言的文章不受影响。前端专用依赖在构建时合并进 `dist`，不再重复作为运行时依赖复制；发布包排除源码映射、测试和演示资源，保留 Electron 运行组件与许可证。
+
+字体使用保留全部字形和可变字重的 WOFF2，原始 TTF 放在 `assets/font-sources`，不进入发布包。MathJax 保留直接链接所需的 `js` 模块，排除浏览器预编译包、TypeScript 源码和组件构建目录。Shiki 保留全部现有语言，只裁去 GitHub 明暗主题以外的主题文件；修改渲染主题时需同步更新打包白名单。Windows 发布包测试覆盖字体加载、公式扩展、辅助 MathML 和多语言高亮。
+
+Actions 在三平台打包后运行 `node scripts/verify-package.mjs release`，直接检查 `app.asar` 中的字体、依赖、主题与裁剪结果；资源缺失或已裁剪文件重新进入产物会使构建失败。提交时必须包含新的 WOFF2 字体、构建脚本和测试文件，远程构建不会读取本地未提交的修改。发布时应选择包含这些改动的成功构建编号，旧构建产物不会自动更新。
 
 [三平台 CI 工作流](../.github/workflows/build.yml)负责安装、测试、构建和上传应用目录；配置文件存在不代表远程工作流已经执行。发行签名和 macOS 公证由发行者配置。
 
-每次发布前在 [`docs/releases`](releases/README.md) 新增 `vX.Y.Z.md`。发布工作流在未填写临时说明时会自动读取这个归档文件，并另外附加构建来源、签名状态以及可选的 GitHub 自动变更列表。
+每次发布前在 [`docs/releases`](releases/README.md) 新增 `vX.Y.Z.md`。发布工作流在未填写临时说明时会将这个归档文件原样作为 Release 正文，不额外附加构建来源、签名状态或 GitHub 自动变更列表。
 
 ## 数据与保存
 
