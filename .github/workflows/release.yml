@@ -139,6 +139,26 @@ jobs:
             cd release-assets
             find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum
           ) > release-assets/SHA256SUMS.txt
+      - name: Create or verify release tag
+        shell: bash
+        run: |
+          if REF_JSON="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" 2>/dev/null)"; then
+            TAG_TYPE="$(jq -r '.object.type' <<< "$REF_JSON")"
+            TAG_SHA="$(jq -r '.object.sha' <<< "$REF_JSON")"
+            while [[ "$TAG_TYPE" == "tag" ]]; do
+              TAG_JSON="$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$TAG_SHA")"
+              TAG_TYPE="$(jq -r '.object.type' <<< "$TAG_JSON")"
+              TAG_SHA="$(jq -r '.object.sha' <<< "$TAG_JSON")"
+            done
+            if [[ "$TAG_TYPE" != "commit" || "$TAG_SHA" != "$SOURCE_SHA" ]]; then
+              echo "Tag $RELEASE_TAG already exists but does not point to source commit $SOURCE_SHA"
+              exit 1
+            fi
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref="refs/tags/$RELEASE_TAG" \
+              -f sha="$SOURCE_SHA" > /dev/null
+          fi
       - name: Create GitHub Release
         shell: bash
         run: |
@@ -149,7 +169,7 @@ jobs:
           fi
 
           SIGNING_NOTE="These packages were reused from successful Desktop builds run $SOURCE_RUN_ID at commit $SOURCE_SHA; this publishing workflow did not rebuild them. Windows packages are currently unsigned. The project is applying for free code signing provided by SignPath.io, certificate by SignPath Foundation. See https://github.com/$GITHUB_REPOSITORY/blob/$SOURCE_SHA/CODE_SIGNING_POLICY.md"
-          ARGS=("$RELEASE_TAG" "${FILES[@]}" --target "$SOURCE_SHA" --generate-notes --notes "$SIGNING_NOTE" --title "Thus.Live Editor $RELEASE_TAG")
+          ARGS=("$RELEASE_TAG" "${FILES[@]}" --verify-tag --generate-notes --notes "$SIGNING_NOTE" --title "Thus.Live Editor $RELEASE_TAG")
           if [[ "$RELEASE_DRAFT" == "true" ]]; then
             ARGS+=(--draft)
           fi
