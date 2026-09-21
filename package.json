@@ -1,15 +1,19 @@
 {
   "name": "thus-live-editor",
   "version": "0.1.0",
-  "description": "Thus.Live desktop writing workspace",
+  "description": "为 Thus.Live 博客准备的本地桌面写作空间。",
   "author": {
     "name": "uMisty",
-    "email": "contact@thus.live"
+    "email": "contact@thus.live",
+    "url": "http://umisty.com"
   },
   "homepage": "https://github.com/uMisty/LiveEditor",
   "repository": {
     "type": "git",
     "url": "https://github.com/uMisty/LiveEditor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/uMisty/LiveEditor/issues"
   },
   "license": "0BSD",
   "private": true,
