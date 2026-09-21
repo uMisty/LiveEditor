@@ -20,7 +20,7 @@ for(const dev of [false,true])test(`Figma layouts, library preview and frameless
     await fs.writeFile(path.join(posts,`article-${i}.md`),`---\ntitle: ${titles[i]}\ndescription: 用熟悉的 Markdown，记录值得留下的想法。\ntags: [写作, 设计]\ndraft: ${i===0}\n---\n## 为想法留一处安静的地方\n\n打开熟悉的项目，让零散的想法慢慢成形。\n好的工具，让注意力停留在文字本身。\n\n> 写作，是与自己的想法认真相处。\n\n## 从一段文字开始\n\n在本地编辑，实时看到博客中的样子。\n\n~~~typescript\nconst writing = {\n  focus: true,\n  format: 'markdown'\n}\n~~~\n`)
     const time=new Date(Date.now()-i*86400000);await fs.utimes(path.join(posts,`article-${i}.md`),time,time)
   }
-  const env:Record<string,string>=Object.fromEntries(Object.entries({...process.env,THUS_USER_DATA:path.join(root,'profile')}).filter((entry):entry is [string,string]=>typeof entry[1]==='string'));delete env.ELECTRON_RUN_AS_NODE;delete env.VITE_DEV_SERVER_URL
+  const env:Record<string,string>=Object.fromEntries(Object.entries({...process.env,THUS_USER_DATA:path.join(root,'profile'),THUS_DISABLE_UPDATE_CHECK:'1'}).filter((entry):entry is [string,string]=>typeof entry[1]==='string'));delete env.ELECTRON_RUN_AS_NODE;delete env.VITE_DEV_SERVER_URL
   const server=dev?await createServer({server:{port:0,strictPort:false}}):undefined
   if(server){await server.listen(0);const address=server.httpServer!.address();if(address&&typeof address!=='string')env.VITE_DEV_SERVER_URL=`http://127.0.0.1:${address.port}`}
   const app=await electron.launch({args:['.'],env});const page=await app.firstWindow();const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',msg=>{if(msg.type()==='error')errors.push(msg.text())})
@@ -94,6 +94,7 @@ for(const dev of [false,true])test(`Figma layouts, library preview and frameless
     await page.getByRole('button',{name:'渲染兼容性',exact:true}).click();await shot('S27-render')
     await page.getByRole('button',{name:'外观与写作',exact:true}).click();await shot('S29-appearance')
     await page.getByRole('button',{name:'快捷键',exact:true}).click();await shot('S30-shortcuts')
+    await page.getByRole('button',{name:'关于软件',exact:true}).click();await expect(page.locator('.about-hero')).toContainText('Thus.Live Editor');await expect(page.locator('.about-details')).toContainText('0.1.0');await expect(page.getByRole('button',{name:'查看此版本 Release'})).toBeEnabled();await shot('about-software')
     await page.getByRole('button',{name:'外观与写作',exact:true}).click();await page.getByRole('button',{name:'深色',exact:true}).click();await page.getByRole('button',{name:'返回写作',exact:true}).click();await shot('S31-dark-windows')
     await page.getByRole('button',{name:'项目设置',exact:true}).click();await expect(page.locator('.settings')).toBeVisible();await page.getByRole('button',{name:'外观与写作',exact:true}).click();await page.getByRole('button',{name:'浅色',exact:true}).click({timeout:5000});await page.getByRole('button',{name:'返回写作',exact:true}).click()
     await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:1080,height:900}))

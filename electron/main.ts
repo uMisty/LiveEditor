@@ -6,7 +6,8 @@ import { fileURLToPath,pathToFileURL } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import chokidar from 'chokidar'
 import { ProjectService,safePath,inside,hash,slash } from './project'
-import type { Preferences,Recovery } from '../shared/types'
+import { stableVersion,isNewerStableVersion } from '../shared/update'
+import type { Preferences,Recovery,UpdateInfo } from '../shared/types'
 
 const here=path.dirname(fileURLToPath(import.meta.url))
 if(process.env.THUS_USER_DATA)app.setPath('userData',process.env.THUS_USER_DATA)
@@ -27,6 +28,17 @@ function ensureWorker(){
   return worker
 }
 function render(raw:string,file:string){return new Promise((resolve,reject)=>{const id=randomUUID();const timer=setTimeout(()=>{pending.delete(id);reject(new Error('预览超时，请减少复杂图表或重试'))},30000);pending.set(id,{resolve,reject,timer});ensureWorker().postMessage({id,raw,file})})}
+async function checkForUpdate():Promise<UpdateInfo|null>{
+  if(process.env.THUS_DISABLE_UPDATE_CHECK==='1')return null
+  const response=await net.fetch('https://api.github.com/repos/uMisty/LiveEditor/releases/latest',{headers:{Accept:'application/vnd.github+json'},signal:AbortSignal.timeout(10_000)})
+  if(!response.ok)throw new Error(`GitHub 更新检查失败（${response.status}）`)
+  const release=await response.json() as {tag_name?:unknown;html_url?:unknown;name?:unknown;draft?:unknown;prerelease?:unknown}
+  if(release.draft||release.prerelease||typeof release.tag_name!=='string')return null
+  const latest=stableVersion(release.tag_name);if(!latest||!isNewerStableVersion(app.getVersion(),latest.tag))return null
+  const expected=`https://github.com/uMisty/LiveEditor/releases/tag/${latest.tag}`
+  const url=typeof release.html_url==='string'&&release.html_url.startsWith('https://github.com/uMisty/LiveEditor/releases/')?release.html_url:expected
+  return {version:latest.version,tag:latest.tag,url,name:typeof release.name==='string'&&release.name.trim()?release.name.trim().slice(0,160):`Thus.Live Editor ${latest.tag}`}
+}
 async function connect(root:string){
   const result=await project.connect(root,process.env.THUS_READ_ONLY==='1');await watcher?.close();watcher=undefined
   if(process.env.THUS_DISABLE_WATCHER!=='1'){
@@ -38,8 +50,10 @@ async function connect(root:string){
 }
 async function handle(action:string,p:any){
   switch(action){
+    case 'appInfo':{const version=app.getVersion();return {name:'Thus.Live Editor',version,releaseTag:`v${version}`,releaseUrl:`https://github.com/uMisty/LiveEditor/releases/tag/v${version}`}}
+    case 'checkForUpdate':return checkForUpdate()
     case 'preferences':return readPreferences()
-    case 'setPreferences':{const next:Preferences={...await readPreferences()};if(['system','light','dark'].includes(p.theme))next.theme=p.theme;if(typeof p.syncScroll==='boolean')next.syncScroll=p.syncScroll;if(typeof p.split==='number')next.split=Math.min(70,Math.max(30,p.split));if([14,16,18].includes(p.fontSize))next.fontSize=p.fontSize;if(p.library&&typeof p.library==='object'){const l=p.library;next.library={category:['all','drafts','tags','archive'].includes(l.category)?l.category:'all',query:String(l.query||'').slice(0,500),year:String(l.year||''),month:String(l.month||''),tags:Array.isArray(l.tags)?l.tags.filter((t:unknown)=>typeof t==='string'):[],sort:l.sort==='date'?'date':'modified',selected:typeof l.selected==='string'?l.selected:undefined,scroll:Math.max(0,Number(l.scroll)||0)}}await writeJSON(configFile(),next);return next}
+    case 'setPreferences':{const next:Preferences={...await readPreferences()};if(['system','light','dark'].includes(p.theme))next.theme=p.theme;if(typeof p.syncScroll==='boolean')next.syncScroll=p.syncScroll;if(typeof p.split==='number')next.split=Math.min(70,Math.max(30,p.split));if([14,16,18].includes(p.fontSize))next.fontSize=p.fontSize;if(typeof p.ignoredUpdateVersion==='string'&&/^\d+\.\d+\.\d+$/.test(p.ignoredUpdateVersion))next.ignoredUpdateVersion=p.ignoredUpdateVersion;if(p.library&&typeof p.library==='object'){const l=p.library;next.library={category:['all','drafts','tags','archive'].includes(l.category)?l.category:'all',query:String(l.query||'').slice(0,500),year:String(l.year||''),month:String(l.month||''),tags:Array.isArray(l.tags)?l.tags.filter((t:unknown)=>typeof t==='string'):[],sort:l.sort==='date'?'date':'modified',selected:typeof l.selected==='string'?l.selected:undefined,scroll:Math.max(0,Number(l.scroll)||0)}}await writeJSON(configFile(),next);return next}
     case 'chooseProject':{const result=await dialog.showOpenDialog(win,{properties:['openDirectory'],title:'选择 Thus.Live 项目目录'});return result.canceled?null:result.filePaths[0]}
     case 'connect':return connect(p.root)
     case 'refresh':return project.info()

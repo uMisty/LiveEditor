@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-const actions=new Set(['blogProfile','saveBlogProfile','preferences','setPreferences','chooseProject','connect','refresh','read','save','create','render','recovery','recoveries','discardRecovery','chooseImage','importImage','imagePlan','planMove','move','trash','saveAs','close','external','windowState','minimize','maximize','requestClose'])
+const actions=new Set(['appInfo','checkForUpdate','blogProfile','saveBlogProfile','preferences','setPreferences','chooseProject','connect','refresh','read','save','create','render','recovery','recoveries','discardRecovery','chooseImage','importImage','imagePlan','planMove','move','trash','saveAs','close','external','windowState','minimize','maximize','requestClose'])
 contextBridge.exposeInMainWorld('editor',{
   platform:process.platform,
   onWindowState(callback:Function){const fn=(_:unknown,state:unknown)=>callback(state);ipcRenderer.on('window:state',fn);return()=>ipcRenderer.removeListener('window:state',fn)},

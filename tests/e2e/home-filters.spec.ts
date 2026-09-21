@@ -16,7 +16,7 @@ test('homepage editing and filter dismissal leave the workspace interactive',asy
   const home='---\nlayout: home\n# Keep homepage metadata\ncustom: retained\n---\n\n<Avatar />\n\n# Welcome home\n\nHomepage introduction.\n'
   await fs.writeFile(path.join(project,'content/index.md'),home)
   await fs.mkdir(path.join(root,'profile'));await fs.writeFile(path.join(root,'profile/preferences.json'),JSON.stringify({project}))
-  const env:Record<string,string>=Object.fromEntries(Object.entries({...process.env,THUS_USER_DATA:path.join(root,'profile'),THUS_DISABLE_WATCHER:'1'}).filter((entry):entry is [string,string]=>typeof entry[1]==='string'));delete env.ELECTRON_RUN_AS_NODE;delete env.VITE_DEV_SERVER_URL
+  const env:Record<string,string>=Object.fromEntries(Object.entries({...process.env,THUS_USER_DATA:path.join(root,'profile'),THUS_DISABLE_WATCHER:'1',THUS_DISABLE_UPDATE_CHECK:'1'}).filter((entry):entry is [string,string]=>typeof entry[1]==='string'));delete env.ELECTRON_RUN_AS_NODE;delete env.VITE_DEV_SERVER_URL
   const app=await electron.launch({args:['.'],env});const page=await app.firstWindow();const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message))
   try{
     await expect(page.getByLabel('搜索文章')).toBeVisible()
