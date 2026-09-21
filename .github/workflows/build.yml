@@ -1,9 +1,6 @@
 name: Desktop builds
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-  pull_request:
 jobs:
   desktop:
     strategy:
@@ -37,18 +34,11 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
           retention-days: 7
-      - name: Package application directory for pull request validation
-        if: github.event_name == 'pull_request'
-        run: pnpm exec electron-builder --dir
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: Build distributable packages
-        if: github.event_name != 'pull_request'
         run: pnpm exec electron-builder --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: Upload reusable release packages
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: release-${{ runner.os }}-${{ github.sha }}
