@@ -1,0 +1,99 @@
+{
+  "name": "thus-live-editor",
+  "version": "0.1.0",
+  "description": "Thus.Live desktop writing workspace",
+  "author": "uMisty",
+  "license": "0BSD",
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/main.mjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "vue-tsc --noEmit && vite build && node scripts/build.mjs",
+    "start": "electron .",
+    "test": "tsx --test tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "package": "pnpm build && electron-builder --dir",
+    "dist": "pnpm build && electron-builder",
+    "icons": "electron scripts/generate-icons.mjs",
+    "docs:screenshots": "node scripts/capture-docs.mjs"
+  },
+  "dependencies": {
+    "@codemirror/language": "^6.12.4",
+    "@lezer/highlight": "^1.2.3",
+    "@codemirror/lang-markdown": "^6.3.4",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.1",
+    "codemirror": "^6.0.2",
+    "chokidar": "^4.0.3",
+    "dompurify": "^3.2.7",
+    "markdown-it-footnote": "^4.0.0",
+    "markdown-it-task-lists": "^2.1.1",
+    "markdown-it-deflist": "^3.0.0",
+    "markdown-it-abbr": "^2.0.0",
+    "markdown-it-mark": "^4.0.0",
+    "markdown-it-sub": "^2.0.0",
+    "markdown-it-sup": "^2.0.0",
+    "markdown-it-mathjax3": "^4.3.2",
+    "mermaid": "^11.12.0",
+    "vitepress": "1.6.4",
+    "vue": "^3.5.42",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.0.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "electron": "^44.4.3",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.9",
+    "tsx": "^4.20.5",
+    "typescript": "~5.9.3",
+    "vite": "^5.4.20",
+    "vue-tsc": "^3.1.0"
+  },
+  "build": {
+    "appId": "live.thus.editor",
+    "productName": "Thus.Live Editor",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json",
+      "LICENSE",
+      "README.md",
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "public/app-icon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "public/app-icon.icns"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office",
+      "icon": "public/app-icon.png"
+    },
+    "nsis": {
+      "installerIcon": "public/app-icon.ico",
+      "uninstallerIcon": "public/app-icon.ico",
+      "installerHeaderIcon": "public/app-icon.ico"
+    }
+  }
+}

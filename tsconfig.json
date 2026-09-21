@@ -1,0 +1,1 @@
+{"compilerOptions":{"target":"ES2022","module":"ESNext","moduleResolution":"Bundler","strict":true,"esModuleInterop":true,"skipLibCheck":true,"allowJs":true,"resolveJsonModule":true,"lib":["ES2022","DOM","DOM.Iterable"],"types":["node","vite/client"]},"include":["src/**/*.ts","src/**/*.vue","electron/**/*.ts","shared/**/*.ts","tests/**/*.ts","vite.config.ts"]}

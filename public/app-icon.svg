@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Thus.Live Editor</title>
+  <rect x="32" y="32" width="960" height="960" rx="216" fill="#2f6f61"/>
+  <path d="M32 720V776a216 216 0 0 0 216 216h528a216 216 0 0 0 216-216V568L720 840H152Z" fill="#285f54"/>
+  <g transform="translate(128 128) scale(24)">
+    <path d="M4 6H26V10H16V22H26V26H10V10H4Z" fill="#f7f8f2"/>
+    <path d="M24 12.5 27 16 24 20 21 16Z" fill="#e3c589"/>
+    <path d="M24 16V20" stroke="#2f6f61" stroke-width=".65"/>
+    <circle cx="24" cy="15.75" r=".65" fill="#2f6f61"/>
+  </g>
+</svg>

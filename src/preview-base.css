@@ -1,0 +1,12 @@
+/* Structural fallback for preview markup when a project's CSS is incomplete. */
+html{color-scheme:light}html.dark{color-scheme:dark}
+.markdown-body [class*="language-"]{position:relative;border-radius:6px;font:14px/26px 'JetBrains Mono',monospace;margin:16px 0;background:var(--code-bg)}
+.markdown-body [class*="language-"] pre{margin:0;padding:24px 16px;overflow:auto;background:transparent}
+.markdown-body .line-numbers-mode pre{padding-left:48px}
+.markdown-body .line-numbers-wrapper{position:absolute;top:24px;left:12px;text-align:right;color:var(--muted);font:14px/26px 'JetBrains Mono',monospace;pointer-events:none}
+.markdown-body [class*="language-"]>.lang{position:absolute;top:0;right:16px;font:11px/20px 'Noto Sans SC',sans-serif;color:var(--muted)}
+.markdown-body button.copy{position:absolute;right:8px;top:4px;border:0;border-radius:4px;background:var(--bg);color:var(--muted);padding:3px 8px;font:12px/20px 'Noto Sans SC',sans-serif;opacity:0;cursor:pointer}
+.markdown-body button.copy::after{content:'复制'}.markdown-body button.copy.copied::after{content:'已复制'}.markdown-body [class*="language-"]:hover button.copy,.markdown-body button.copy:focus-visible{opacity:1}
+.markdown-body .vp-code-group>.tabs{display:flex;gap:16px;font:14px/24px 'Noto Sans SC',sans-serif;overflow:auto}.markdown-body .vp-code-group>.tabs input{position:absolute;opacity:0;width:1px}.markdown-body .vp-code-group>.tabs label{padding:8px;cursor:pointer}.markdown-body .vp-code-group>.tabs input:checked+label{color:var(--accent);border-bottom:2px solid var(--accent)}.markdown-body .vp-code-group>.blocks>div{display:none}.markdown-body .vp-code-group>.blocks>.active{display:block}
+.markdown-body .custom-block{border:1px solid var(--line);background:var(--code-bg);border-radius:6px;padding:16px;margin:16px 0}.markdown-body .custom-block-title{font-weight:500}.markdown-body .custom-block.tip{border-left:3px solid var(--accent)}
+.dark .shiki,.dark .shiki span{color:var(--shiki-dark)!important;background-color:var(--shiki-dark-bg)!important}
