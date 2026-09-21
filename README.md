@@ -14,7 +14,7 @@
 
 **AI 协作说明：本项目由人类提出需求、选择设计并验收，AI（ChatGPT / Codex）协助完成界面设计、代码实现、测试与文档。** 这是开发方式说明，不构成额外的署名或使用条件。
 
-作者：**uMisty** · 许可证：[0BSD](LICENSE) · 技术栈：Electron / Vue 3 / TypeScript / CodeMirror 6
+作者：**uMisty** · 博客系统：[Thus.Live](https://github.com/uMisty/Thus.Live) · 许可证：[0BSD](LICENSE) · 技术栈：Electron / Vue 3 / TypeScript / CodeMirror 6
 
 [开始使用](#开始使用) · [界面与功能](#界面与功能) · [本地开发](#本地开发) · [开发与构建指南](docs/README.md)
 
