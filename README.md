@@ -116,7 +116,7 @@ Thus.Live/
 
 正式安装包从 [GitHub Releases](https://github.com/uMisty/LiveEditor/releases) 下载。`Desktop builds` 工作流在 `main` 上生成可复用的三平台安装包；`Publish desktop release` 工作流仅在手动触发时选择某次成功构建、校验来源与版本并发布，不会重复编译。每个 Release 都附带 `SHA256SUMS.txt` 校验清单。
 
-发布时先在 Actions 中打开一次成功的 `Desktop builds`，从地址栏复制运行编号；再手动运行 `Publish desktop release`，填写该 `run_id` 和与 `package.json` 一致的版本标签。普通推送只更新临时构建产物，不会创建 GitHub Release。
+发布时先在 Actions 中打开一次成功的 `Desktop builds`，从地址栏复制运行编号；再手动运行 `Publish desktop release`，填写该 `run_id`、与 `package.json` 一致的版本标签，以及可选的 Markdown Release notes。`generate_notes` 控制是否在手写说明之后附加 GitHub 自动生成的变更记录。普通推送只更新临时构建产物，不会创建 GitHub Release。
 
 项目正在申请 SignPath Foundation 的开源代码签名服务。申请获批并完成集成后，Windows 发布文件将使用“Free code signing provided by SignPath.io, certificate by SignPath Foundation”。在此之前，Release 说明会明确标记 Windows 文件尚未签名，详见[代码签名政策](CODE_SIGNING_POLICY.md)。
 
