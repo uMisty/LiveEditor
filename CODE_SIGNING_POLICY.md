@@ -37,9 +37,10 @@ or dependency configuration receive the same review as application code.
 
 ## Privacy and security
 
-The application does not transmit information to networked systems unless the
-user explicitly requests an external action. See the project
-[privacy policy](PRIVACY.md) for details.
+The application does not transmit project contents. Its only routine automatic
+network request checks the public GitHub latest-release endpoint for a newer
+stable version; opening a release or another HTTP/HTTPS link is user initiated.
+See the project [privacy policy](PRIVACY.md) for details.
 
 Security or signing concerns can be reported privately to
 [contact@thus.live](mailto:contact@thus.live).

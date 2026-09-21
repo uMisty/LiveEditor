@@ -2,6 +2,10 @@
   <img src="public/app-icon-128.png" width="96" height="96" alt="Thus.Live Editor 图标">
 </p>
 
+<p align="center">
+  <strong>简体中文</strong> · <a href="README.en.md">English</a>
+</p>
+
 # Thus.Live Editor
 
 **为 Thus.Live 博客准备的本地桌面写作空间。**
@@ -51,6 +55,10 @@
 
 </details>
 
+### 软件设置与版本更新
+
+项目设置包含项目检查、渲染兼容性、外观、快捷键和“关于软件”。“关于软件”展示安装包版本及对应的 GitHub Release 标签，并支持手动检查更新。应用启动后也会后台检查 GitHub 最新稳定 Release；可以按版本忽略提醒，后续更高版本仍会再次提示。应用不会自动下载或安装更新。
+
 | 功能 | 使用方式 |
 | --- | --- |
 | 文章管理 | 新建草稿、搜索、日期/标签筛选、快速打开 |
@@ -59,6 +67,7 @@
 | 图片导入 | 选择、拖入或粘贴图片；同名时确认保留两份或使用现有图片 |
 | 文件保护 | 保存版本比对、外部修改提示、未保存提醒、恢复副本 |
 | 文章整理 | 移动或重命名、检查引用、另存副本、系统回收站 |
+| 版本更新 | 检查 GitHub 最新稳定 Release，可按版本忽略提醒 |
 
 ## 开始使用
 
@@ -114,9 +123,9 @@ Thus.Live/
 
 ## 下载与发布
 
-正式安装包从 [GitHub Releases](https://github.com/uMisty/LiveEditor/releases) 下载。手动运行 `Desktop builds` 工作流可生成可复用的三平台安装包；`Publish desktop release` 工作流仅在手动触发时选择某次成功构建、校验来源与版本并发布，不会重复编译。每个 Release 都附带 `SHA256SUMS.txt` 校验清单。
+正式安装包从 [GitHub Releases](https://github.com/uMisty/LiveEditor/releases) 下载。Windows 提供 NSIS 安装包和 ZIP，macOS 提供 DMG 和 ZIP，Linux 提供 AppImage 和 DEB。手动运行 `Desktop builds` 工作流会在三种系统上测试并生成可复用安装包；`Publish desktop release` 工作流仅在手动触发时选择某次成功构建、校验来源与版本并发布，不会重复编译。每个 Release 都附带 `SHA256SUMS.txt` 校验清单。
 
-发布时先在 Actions 中手动运行 `Desktop builds`，成功后从地址栏复制运行编号；再手动运行 `Publish desktop release`，填写该 `run_id`、与 `package.json` 一致的版本标签，以及可选的 Markdown Release notes。`generate_notes` 控制是否在手写说明之后附加 GitHub 自动生成的变更记录。普通推送不会启动桌面构建，也不会创建 GitHub Release。
+发布时先在 [`docs/releases`](docs/releases/README.md) 中新增对应版本说明，再在 Actions 中手动运行 `Desktop builds`。构建成功后从地址栏复制运行编号，手动运行 `Publish desktop release`，填写该 `run_id` 和与 `package.json` 一致的版本标签。发布工作流默认读取 `docs/releases/vX.Y.Z.md`；临时填写 `release_notes` 时会覆盖归档内容。`generate_notes` 控制是否在手写说明之后附加 GitHub 自动生成的变更记录。普通推送不会启动桌面构建，也不会创建 GitHub Release。
 
 项目正在申请 SignPath Foundation 的开源代码签名服务。申请获批并完成集成后，Windows 发布文件将使用“Free code signing provided by SignPath.io, certificate by SignPath Foundation”。在此之前，Release 说明会明确标记 Windows 文件尚未签名，详见[代码签名政策](CODE_SIGNING_POLICY.md)。
 
@@ -142,7 +151,7 @@ pnpm dev
 | `pnpm icons` | 从 SVG 母版重新生成各平台图标 |
 | `pnpm docs:screenshots` | 用临时示例项目更新本文截图，先执行构建 |
 
-构建产物位于 `release/`。Windows 支持 NSIS 安装包和 ZIP；运行解压版时保留完整目录。macOS 配置 DMG/ZIP，Linux 配置 AppImage/DEB，需要在对应系统构建和验证。详细流程见[开发与构建指南](docs/README.md)。
+构建产物位于 `release/`。运行 Windows 解压版时需保留完整目录。三平台 CI 会执行核心测试、生产构建和 Electron 集成测试；平台签名、公证以及更广泛的 Linux 发行版兼容性仍需在正式发布阶段核验。详细流程见[开发与构建指南](docs/README.md)。
 
 ## 预览与兼容范围
 
@@ -154,14 +163,16 @@ pnpm dev
 - 预览不加载远程图片；本地图片来自文章附近或 `content/public`。
 - 移动时仅自动更新可识别的 Markdown 链接；动态引用及线上地址重定向需另行处理。
 - Markdown 编译上限为 5 MB，单张导入图片上限为 25 MB。
+- 启动时会访问本项目的 GitHub 最新稳定 Release 接口进行版本比较；不会上传文章、图片、项目路径或博客配置，也不会自动下载安装包。
 
-Windows 已在本机验证；macOS/Linux 的构建配置和 CI 工作流已提供，尚需对应系统实测。
+Windows 已完成本机验证；三平台 CI 工作流负责对应系统的自动构建与集成测试。macOS 签名与公证、Windows 代码签名以及不同 Linux 桌面环境仍需单独核验。
 
 ## 文档与设计
 
 - [开发、构建、数据保护与故障排查](docs/README.md)
 - [代码签名政策](CODE_SIGNING_POLICY.md)
 - [隐私政策](PRIVACY.md)
+- [版本说明档案与发布流程](docs/releases/README.md)
 - [截图来源及更新方法](docs/images/README.md)
 - [应用图标设计](design/APP-ICON.md)
 - [Figma 实现核对记录](design/FIGMA-IMPLEMENTATION-AUDIT.md)

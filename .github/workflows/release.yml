@@ -13,7 +13,7 @@ on:
         default: v0.1.0
         type: string
       release_notes:
-        description: Optional Markdown release notes written by the maintainer
+        description: Optional Markdown override; empty uses docs/releases/<tag>.md
         required: false
         type: string
       generate_notes:
@@ -108,6 +108,10 @@ jobs:
             echo "Tag $RELEASE_TAG does not match package.json version $PACKAGE_VERSION"
             exit 1
           fi
+          if [[ ! -s "docs/releases/$RELEASE_TAG.md" ]]; then
+            echo "Missing release notes archive: docs/releases/$RELEASE_TAG.md"
+            exit 1
+          fi
 
   publish:
     needs: validate
@@ -122,6 +126,9 @@ jobs:
       RELEASE_DRAFT: ${{ inputs.draft }}
       RELEASE_PRERELEASE: ${{ inputs.prerelease }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.source_sha }}
       - uses: actions/download-artifact@v4
         with:
           pattern: release-*
@@ -183,6 +190,8 @@ jobs:
           NOTES="$SIGNING_NOTE"
           if [[ -n "$RELEASE_NOTES" ]]; then
             NOTES="$RELEASE_NOTES"$'\n\n'"$SIGNING_NOTE"
+          elif [[ -f "docs/releases/$RELEASE_TAG.md" ]]; then
+            NOTES="$(cat "docs/releases/$RELEASE_TAG.md")"$'\n\n'"$SIGNING_NOTE"
           fi
 
           ARGS=("$RELEASE_TAG" "${FILES[@]}" --verify-tag --notes "$NOTES" --title "Thus.Live Editor $RELEASE_TAG")
