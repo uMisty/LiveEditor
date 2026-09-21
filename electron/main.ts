@@ -28,9 +28,12 @@ function ensureWorker(){
 }
 function render(raw:string,file:string){return new Promise((resolve,reject)=>{const id=randomUUID();const timer=setTimeout(()=>{pending.delete(id);reject(new Error('预览超时，请减少复杂图表或重试'))},30000);pending.set(id,{resolve,reject,timer});ensureWorker().postMessage({id,raw,file})})}
 async function connect(root:string){
-  const result=await project.connect(root,process.env.THUS_READ_ONLY==='1');await watcher?.close()
-  watcher=chokidar.watch([path.join(root,'content/posts'),path.join(root,'content/index.md'),path.join(root,'src/styles'),path.join(root,'.vitepress/config.ts')],{ignoreInitial:true,followSymlinks:false,awaitWriteFinish:{stabilityThreshold:250,pollInterval:100}})
-  watcher.on('all',(_event,file)=>{if(file.includes('.thus-'))return;win?.webContents.send('project:change',{kind:file.endsWith('.css')?'styles':file.endsWith('config.ts')?'config':'content',file:slash(path.relative(project.content,file))})})
+  const result=await project.connect(root,process.env.THUS_READ_ONLY==='1');await watcher?.close();watcher=undefined
+  if(process.env.THUS_DISABLE_WATCHER!=='1'){
+    watcher=chokidar.watch([path.join(root,'content/posts'),path.join(root,'content/index.md'),path.join(root,'src/styles'),path.join(root,'.vitepress/config.ts')],{ignoreInitial:true,followSymlinks:false,usePolling:process.env.CI==='true',interval:100,awaitWriteFinish:{stabilityThreshold:250,pollInterval:100}})
+    watcher.on('all',(_event,file)=>{if(file.includes('.thus-'))return;win?.webContents.send('project:change',{kind:file.endsWith('.css')?'styles':file.endsWith('config.ts')?'config':'content',file:slash(path.relative(project.content,file))})})
+    await new Promise<void>((resolve,reject)=>{watcher!.once('ready',resolve);watcher!.once('error',reject)})
+  }
   await writeJSON(configFile(),{...await readPreferences(),project:root});return result
 }
 async function handle(action:string,p:any){

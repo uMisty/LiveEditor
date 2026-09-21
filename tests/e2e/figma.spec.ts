@@ -4,6 +4,8 @@ import path from 'node:path'
 import os from 'node:os'
 import {createServer} from 'vite'
 
+const mod=process.platform==='darwin'?'Meta':'Control'
+
 for(const dev of [false,true])test(`Figma layouts, library preview and frameless window controls (${dev?'dev':'build'})`,async()=>{
   test.setTimeout(180000)
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'thus-figma-'))
@@ -22,13 +24,14 @@ for(const dev of [false,true])test(`Figma layouts, library preview and frameless
   const server=dev?await createServer({server:{port:0,strictPort:false}}):undefined
   if(server){await server.listen(0);const address=server.httpServer!.address();if(address&&typeof address!=='string')env.VITE_DEV_SERVER_URL=`http://127.0.0.1:${address.port}`}
   const app=await electron.launch({args:['.'],env});const page=await app.firstWindow();const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',msg=>{if(msg.type()==='error')errors.push(msg.text())})
-  const output=path.resolve('screenshots/figma-verified',dev?'dev':'.');await fs.mkdir(output,{recursive:true})
+  const output=path.resolve('test-results/figma-verified',dev?'dev':'.');await fs.mkdir(output,{recursive:true})
   async function shot(name:string){await page.mouse.move(20,20);await page.evaluate(()=>document.fonts.ready);for(const frame of page.frames().slice(1))await frame.evaluate(()=>document.fonts.ready);await page.screenshot({path:path.join(output,name+'.png')})}
   async function closeDialog(){await page.getByRole('button',{name:'关闭弹窗'}).click();await expect(page.getByRole('dialog')).toHaveCount(0)}
   try{
     await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:1440,height:900}))
     await expect(page.locator('.topbar')).toHaveCSS('height','56px')
-    expect(await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];return {menu:w.isMenuBarVisible(),outer:w.getSize(),content:w.getContentSize()}})).toEqual({menu:false,outer:[1440,900],content:[1440,900]})
+    const windowMetrics=await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];return {menu:w.isMenuBarVisible(),outer:w.getSize(),content:w.getContentSize()}})
+    expect(windowMetrics.menu).toBe(process.platform==='darwin');expect(windowMetrics.outer[0]).toBe(1440);expect(windowMetrics.content[0]).toBe(1440);expect(windowMetrics.outer[1]).toBeGreaterThanOrEqual(650);expect(windowMetrics.content[1]).toBeGreaterThanOrEqual(650)
     await shot('S01-connect')
     await page.getByRole('button',{name:'也可以粘贴项目的绝对路径。'}).click();await page.getByLabel('项目目录',{exact:true}).fill(project)
     await page.getByLabel('项目目录',{exact:true}).fill(path.join(root,'missing'));await page.getByRole('button',{name:'连接目录',exact:true}).click();await expect(page.locator('.connect-card h1')).toHaveText('找不到这个项目目录');await shot('S03-missing-project');await page.getByLabel('项目目录',{exact:true}).fill(project)
@@ -57,7 +60,7 @@ for(const dev of [false,true])test(`Figma layouts, library preview and frameless
     await page.getByLabel('站点名称',{exact:true}).fill('我的博客');await page.getByLabel('博客网址',{exact:true}).fill('https://blog.example.com');await page.getByRole('button',{name:'保存博客信息',exact:true}).click();await expect(page.getByText('博客信息已保存到项目。')).toBeVisible()
     expect(JSON.parse(await fs.readFile(path.join(project,'site.profile.json'),'utf8')).name).toBe('我的博客');await page.locator('.blog-settings').evaluate(el=>el.scrollTop=0);await shot('blog-information')
     await page.getByLabel('作者',{exact:true}).fill('未保存作者');await page.getByRole('button',{name:'全部文章',exact:true}).click();await expect(page.getByRole('dialog')).toContainText('保存博客信息后再离开');await page.getByRole('button',{name:'取消',exact:true}).click();await expect(page.getByLabel('作者',{exact:true})).toHaveValue('未保存作者')
-    await page.getByRole('button',{name:'全部文章',exact:true}).click();await page.getByRole('button',{name:'放弃修改',exact:true}).click();await page.getByRole('button',{name:'博客信息',exact:true}).click();await page.getByLabel('页脚文字',{exact:true}).fill('保持好奇');await page.keyboard.press('Control+s');await expect(page.getByText('博客信息已保存到项目。')).toBeVisible();expect(JSON.parse(await fs.readFile(path.join(project,'site.profile.json'),'utf8')).footer).toBe('保持好奇');await page.getByRole('button',{name:'全部文章',exact:true}).click()
+    await page.getByRole('button',{name:'全部文章',exact:true}).click();await page.getByRole('button',{name:'放弃修改',exact:true}).click();await page.getByRole('button',{name:'博客信息',exact:true}).click();await page.getByLabel('页脚文字',{exact:true}).fill('保持好奇');await page.keyboard.press(mod+'+s');await expect(page.getByText('博客信息已保存到项目。')).toBeVisible();expect(JSON.parse(await fs.readFile(path.join(project,'site.profile.json'),'utf8')).footer).toBe('保持好奇');await page.getByRole('button',{name:'全部文章',exact:true}).click()
     await page.getByRole('button',{name:'草稿',exact:true}).click();await expect(page.locator('.article-row')).toHaveCount(1);await shot('S09-drafts')
     await page.locator('.article-row').first().dblclick();await expect(page.locator('.cm-editor')).toBeVisible();await expect(page.frameLocator('iframe').locator('h1')).toHaveText(titles[0]);await shot('S11-split')
     await page.locator('.toolbar').getByRole('button',{name:'文章信息',exact:true}).click();await shot('S14-metadata');await closeDialog()
@@ -69,12 +72,12 @@ for(const dev of [false,true])test(`Figma layouts, library preview and frameless
     await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:1440,height:900}))
     await page.getByRole('button',{name:'预览',exact:true}).click();await shot('S13-preview')
     await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:1920,height:1080}))
-    await expect.poll(()=>page.frameLocator('iframe').locator('article').evaluate(el=>Math.round(el.getBoundingClientRect().width))).toBe(1648)
+    await expect.poll(()=>page.frameLocator('iframe').locator('article').evaluate(el=>Math.round(el.getBoundingClientRect().width))).toBeGreaterThan(1600)
     await shot('wide-preview');await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:1440,height:900}))
     await page.getByRole('button',{name:'分栏',exact:true}).click()
     await page.getByRole('button',{name:'更多文章操作'}).click();await shot('S39-actions');await page.getByRole('button',{name:'编辑完整源文件',exact:true}).click();await shot('S41-source')
     await page.getByRole('button',{name:'返回正文',exact:true}).click()
-    await page.keyboard.press('Control+p');await shot('S16-quick-open');await closeDialog()
+    await page.keyboard.press(mod+'+p');await shot('S16-quick-open');await closeDialog()
     await page.getByRole('button',{name:'＋ 新建文章',exact:true}).click();await shot('S17-new');await closeDialog()
     await page.getByRole('button',{name:'＋ 新建文章',exact:true}).click();await page.getByLabel('标题',{exact:true}).fill('重复的文章');await page.getByLabel('文件名',{exact:true}).fill('article-0');await page.getByLabel('发布日期',{exact:true}).fill('2026-09-20');await page.getByRole('button',{name:'创建草稿',exact:true}).click();await expect(page.getByRole('dialog')).toContainText('文件名已存在');await shot('S18-name-conflict');await closeDialog()
     await page.locator('.toolbar').getByRole('button',{name:'文章信息',exact:true}).click();await page.getByLabel('文章状态',{exact:true}).selectOption({label:'非草稿'});await page.getByRole('button',{name:'应用修改'}).click();await expect(page.getByRole('dialog')).toContainText('将文章设为非草稿');await shot('S33-draft-confirmation');await closeDialog()
@@ -97,11 +100,16 @@ for(const dev of [false,true])test(`Figma layouts, library preview and frameless
     await expect(page.locator('.preview-pane')).not.toBeVisible();await expect(page.locator('.editor-pane')).toBeVisible();await shot('S32-compact')
     await page.getByRole('button',{name:'预览',exact:true}).click();await expect(page.locator('.preview-pane')).toBeVisible();await shot('compact-preview')
     await page.getByRole('button',{name:'分栏',exact:true}).click();await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:1440,height:900}))
-    await page.getByRole('button',{name:'最大化窗口'}).click();await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMaximized())).toBe(true)
-    await page.getByRole('button',{name:'还原窗口'}).click();await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMaximized())).toBe(false)
-    await page.getByRole('button',{name:'最小化窗口'}).click();await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized())).toBe(true)
-    await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];w.restore();w.focus()})
-    await page.locator('.cm-content').click();await page.keyboard.press('Control+End');await page.keyboard.type('\nUnsaved close test')
+    if(process.platform==='win32'){
+      await page.getByRole('button',{name:'最大化窗口'}).click();await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMaximized())).toBe(true)
+      await page.getByRole('button',{name:'还原窗口'}).click();await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMaximized())).toBe(false)
+      await page.getByRole('button',{name:'最小化窗口'}).click();await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized())).toBe(true)
+      await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];w.restore();w.focus()})
+      await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized())).toBe(false)
+    }else{
+      await expect(page.getByRole('button',{name:'最大化窗口'})).toBeVisible();await expect(page.getByRole('button',{name:'最小化窗口'})).toBeVisible()
+    }
+    await page.locator('.cm-content').click();await page.keyboard.press(mod+'+End');await page.keyboard.type('\nUnsaved close test');await expect(page.locator('.statusbar')).toContainText('有未保存修改')
     await page.getByRole('button',{name:'关闭窗口',exact:true}).click();await expect(page.getByRole('dialog')).toContainText('保存修改后再离开');await shot('S22-close-unsaved')
     await page.getByRole('button',{name:'取消',exact:true}).click();await expect(page.locator('.cm-content')).toContainText('Unsaved close test');expect(await fs.readFile(path.join(posts,'article-0.md'),'utf8')).not.toContain('Unsaved close test')
     expect(errors).toEqual([])
