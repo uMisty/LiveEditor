@@ -2,7 +2,15 @@
   "name": "thus-live-editor",
   "version": "0.1.0",
   "description": "Thus.Live desktop writing workspace",
-  "author": "uMisty",
+  "author": {
+    "name": "uMisty",
+    "email": "contact@thus.live"
+  },
+  "homepage": "https://github.com/uMisty/LiveEditor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uMisty/LiveEditor.git"
+  },
   "license": "0BSD",
   "private": true,
   "type": "module",
@@ -88,6 +96,7 @@
         "deb"
       ],
       "category": "Office",
+      "maintainer": "uMisty <contact@thus.live>",
       "icon": "public/app-icon.png"
     },
     "nsis": {
