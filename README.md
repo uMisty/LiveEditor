@@ -112,6 +112,12 @@ Thus.Live/
 | 编辑器内查找 | `Ctrl + F` | `⌘ + F` |
 | 关闭弹窗 | `Esc` | `Esc` |
 
+## 下载与发布
+
+正式安装包从 [GitHub Releases](https://github.com/uMisty/LiveEditor/releases) 下载。每个版本由仓库中的手动发布工作流构建，并附带 `SHA256SUMS.txt` 校验清单。
+
+项目正在申请 SignPath Foundation 的开源代码签名服务。申请获批并完成集成后，Windows 发布文件将使用“Free code signing provided by SignPath.io, certificate by SignPath Foundation”。在此之前，Release 说明会明确标记 Windows 文件尚未签名，详见[代码签名政策](CODE_SIGNING_POLICY.md)。
+
 ## 本地开发
 
 当前项目使用 **Node.js 24 与 pnpm 11**。在项目根目录运行：
@@ -152,6 +158,8 @@ Windows 已在本机验证；macOS/Linux 的构建配置和 CI 工作流已提�
 ## 文档与设计
 
 - [开发、构建、数据保护与故障排查](docs/README.md)
+- [代码签名政策](CODE_SIGNING_POLICY.md)
+- [隐私政策](PRIVACY.md)
 - [截图来源及更新方法](docs/images/README.md)
 - [应用图标设计](design/APP-ICON.md)
 - [Figma 实现核对记录](design/FIGMA-IMPLEMENTATION-AUDIT.md)

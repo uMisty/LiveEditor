@@ -1,0 +1,131 @@
+name: Publish desktop release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Version tag; it must match package.json (for example v0.1.0)
+        required: true
+        default: v0.1.0
+        type: string
+      draft:
+        description: Create the GitHub Release as a draft
+        required: true
+        default: false
+        type: boolean
+      prerelease:
+        description: Mark the GitHub Release as a prerelease
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG"
+            exit 1
+          fi
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          if [[ "$RELEASE_TAG" != "v$PACKAGE_VERSION" ]]; then
+            echo "Tag $RELEASE_TAG does not match package.json version $PACKAGE_VERSION"
+            exit 1
+          fi
+
+  build:
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
+      - name: Desktop integration test
+        if: runner.os != 'Linux'
+        run: pnpm test:e2e
+      - name: Desktop integration test (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pnpm test:e2e
+      - name: Build distributable packages
+        run: pnpm exec electron-builder --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Upload release packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ runner.os }}
+          path: |
+            release/*.exe
+            release/*.zip
+            release/*.dmg
+            release/*.AppImage
+            release/*.deb
+            release/*.yml
+            release/*.blockmap
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_DRAFT: ${{ inputs.draft }}
+      RELEASE_PRERELEASE: ${{ inputs.prerelease }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+      - name: Create SHA-256 checksums
+        shell: bash
+        run: |
+          (
+            cd release-assets
+            find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum
+          ) > release-assets/SHA256SUMS.txt
+      - name: Create GitHub Release
+        shell: bash
+        run: |
+          mapfile -d '' FILES < <(find release-assets -type f -print0)
+          if [[ ${#FILES[@]} -eq 0 ]]; then
+            echo "No release files were downloaded"
+            exit 1
+          fi
+
+          SIGNING_NOTE="Windows packages in this release are currently unsigned. The project is applying for free code signing provided by SignPath.io, certificate by SignPath Foundation. See https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/CODE_SIGNING_POLICY.md"
+          ARGS=("$RELEASE_TAG" "${FILES[@]}" --target "$GITHUB_SHA" --generate-notes --notes "$SIGNING_NOTE" --title "Thus.Live Editor $RELEASE_TAG")
+          if [[ "$RELEASE_DRAFT" == "true" ]]; then
+            ARGS+=(--draft)
+          fi
+          if [[ "$RELEASE_PRERELEASE" == "true" ]]; then
+            ARGS+=(--prerelease)
+          fi
+          gh release create "${ARGS[@]}"
